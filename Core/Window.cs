@@ -31,10 +31,10 @@ namespace P2DEngine.Core
         {
             1, 1, 1, 1, 1, 1, 1, 1,
             1, 0, 0, 0, 0, 0, 0, 1,
-            1, 0, 0, 0, 0, 1, 0, 1,
-            1, 0, 0, 0, 0, 1, 0, 1,
-            1, 0, 0, 0, 0, 1, 1, 1,
-            1, 0, 0, 0, 0, 0, 0, 1,
+            1, 1, 1, 0, 1, 1, 0, 1,
+            1, 0, 1, 0, 1, 1, 0, 1,
+            1, 0, 1, 0, 1, 1, 1, 1,
+            1, 0, 1, 0, 1, 0, 0, 1,
             1, 0, 0, 0, 0, 0, 0, 1,
             1, 1, 1, 1, 1, 1, 1, 1
         };
@@ -104,7 +104,8 @@ namespace P2DEngine.Core
             SwapBuffers();
         }
 
-        float posX = 400, posY = 300;  //x and y start position
+        float posX = 2, posY = 2;  //x and y start position
+        float speed = 0.5f;
         float angle;
         Vector2 dir;
         double planeX = 0, planeY = 0.66; //the 2d raycaster version of camera plane
@@ -122,22 +123,22 @@ namespace P2DEngine.Core
 
             if (input.IsKeyDown(Keys.W))
             {
-                posX += dir.X * 100 * (float)e.Time;
-                posY += dir.Y * 100 * (float)e.Time;
+                posX += dir.X * speed * (float)e.Time;
+                posY += dir.Y * speed * (float)e.Time;
             }
             if (input.IsKeyDown(Keys.S))
             {
-                posX -= dir.X * 100 * (float)e.Time;
-                posY -= dir.Y * 100 * (float)e.Time;
+                posX -= dir.X * speed * (float)e.Time;
+                posY -= dir.Y * speed * (float)e.Time;
             }
 
             if (input.IsKeyDown(Keys.A))
             {
-                angle += 5f * (float)e.Time;
+                angle += 1f * (float)e.Time;
             }
             if (input.IsKeyDown(Keys.D))
             {
-                angle -= 5f * (float)e.Time;
+                angle -= 1f * (float)e.Time;
             }
 
             if (angle < 0.0f)
@@ -149,6 +150,7 @@ namespace P2DEngine.Core
                 angle = 0.0f;
             }
 
+            Console.WriteLine($"Pos:{posX}:{posY} Dir:{dir.X}:{dir.Y}");
             dir = new Vector2((float)MathHelper.Cos(angle), (float)MathHelper.Sin(angle));
         }
 
@@ -188,8 +190,18 @@ namespace P2DEngine.Core
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
 
+            int textureWidth, textureHeight;
+            GL.BindTexture(TextureTarget.Texture2D, textureID);
+
+            // Get the texture width and height
+            GL.GetTexLevelParameter(TextureTarget.Texture2D, 0, GetTextureParameter.TextureWidth, out textureWidth);
+            GL.GetTexLevelParameter(TextureTarget.Texture2D, 0, GetTextureParameter.TextureHeight, out textureHeight);
+
             // Unbind the texture
             GL.BindTexture(TextureTarget.Texture2D, 0);
+
+            int textureLocation = GL.GetUniformLocation(mainShader.Handle, "mapTexture");
+            GL.Uniform1(textureLocation, 0); // Texture unit 0
         }
 
         void DrawVerticalSlice(float x, int wallHeight, int screenWidth, int screenHeight)
@@ -197,17 +209,11 @@ namespace P2DEngine.Core
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.Texture2D, textureID);
 
-            // Draw map
-            int textureLocation = GL.GetUniformLocation(mainShader.Handle, "mapTexture");
-            GL.Uniform1(textureLocation, 0); // Texture unit 0
-
             // Draw Player
             mainShader.SetVector2("u_resolution", new Vector2(ClientSize.X, ClientSize.Y));
             mainShader.SetVector2("u_cameraPos", new Vector2(posX, posY));
-            //mainShader.SetVector2("u_cameraDir", new Vector2(1, 1));
-
+            mainShader.SetVector2("u_cameraDir", dir);
             mainShader.SetVector2("u_rayStart", new Vector2(posX, posY));
-            mainShader.SetVector2("u_rayEnd", 100f * dir + new Vector2(posX, posY)); 
         }
     }
 }
